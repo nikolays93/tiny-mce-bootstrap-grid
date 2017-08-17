@@ -1,6 +1,6 @@
 /* global tinymce */
 ( function() {
-    tinymce.PluginManager.add( 'grid_shortcode', function( editor ) {
+    tinymce.PluginManager.add( 'grid_shortcode', function( editor, link ) {
         editor.addButton( 'grid_shortcode', {
             text: '',
             type: 'button',
@@ -78,5 +78,64 @@
 
             editor.getDoc().getElementsByTagName( 'head' )[ 0 ].appendChild( scriptElm );
         } );
+
+        //List of bootstrap elements not to delete
+        var bootstrapClassesStr = '.col-1,.col-2,.col-3,.col-4,.col-5,.col-6,.col-7,.col-8,.col-9,.col-10,.col-11,.col-12';
+        //var bootstrapElements = bootstrapClassesStr.slice(1).split(',.');
+
+        editor.on('keydown', function(evt) {
+            var currentNode = editor.selection.getNode();
+            var field = currentNode.closest(bootstrapClassesStr);
+            if( field ){
+                if( evt.keyCode == 8 || evt.keyCode == 46 ){
+                    var ret = 0;
+                    var startOffset = editor.selection.getRng().startOffset;
+
+                    var selected = editor.selection.getContent();
+                    var fieldText = '';
+                    if( field ){
+                            fieldText = field.textContent.replace("\r", "")
+                                                       .replace("\n", "")
+                                                       .replace("↵", "");
+                    }
+                    // debug
+                    // console.log({startOffset : startOffset, fieldText : fieldText.length,
+                    //     selected : selected.length, keyCode : evt.keyCode, field : field });
+                    if( field.innerHTML.length == selected.length ){
+                        // console.log('Удаление всего выделенного контента backspace\'ом или delete\'ом');
+                        ret = 2;
+                    }
+
+                    // backspace
+                    if ( evt.keyCode == 8 && startOffset == "1" &&
+                        selected.length == 0 && fieldText.length == 1 ){
+                        // console.log('Удаление последнего элемента backspace\'ом');
+                        ret = 2;
+                    }
+
+                    // delete
+                    if ( evt.keyCode == 46){
+                        if(startOffset == "0" && fieldText.length == 1){
+                            // console.log('Удаление последнего элемента delete\'ом');
+                            ret = 2;
+                        }
+                        if( currentNode.innerHTML.length == startOffset  ){
+                            // console.log('Удаление следующего элемента, так как за кареткой пусто');
+                            ret = 1;
+                        }
+                    }
+
+                    if(ret){
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        if(ret == 2){
+                            field.innerHTML = '&nbsp;';
+                        }
+                        return false;
+                    }
+                }
+            }
+        });
+
     });
 })();
